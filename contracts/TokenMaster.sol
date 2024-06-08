@@ -24,7 +24,7 @@ contract TokenMaster is ERC721 {
     mapping(uint256 => mapping(uint256 => address)) public seatTaken;
     // save seat that is already taken on spesific occasion
     mapping(uint256 => uint256[]) seatsTaken; 
-    // save buyer thats is bought
+    // save buyer thats is bought   
     mapping(uint256 => mapping(address => bool) ) public hasBought; 
 
 
@@ -59,15 +59,37 @@ contract TokenMaster is ERC721 {
     }
 
     function mint(uint256 _id, uint256 _seat) public payable {
+        // make sure id not zero 
+        require(_id != 0);
+        require(_id <= totalOccasions);
+
+        // ETH sent is greater than cost... 
+        require(msg.value >= occasions[_id].cost);
+        
+        // require that the seat is not taken, and the seats is exist
+        require(seatTaken[_id][_seat] == address(0) );
+        require(_seat <= occasions[_id].maxTickets );
+
+
         // sync to Occassion struct
         occasions[_id].tickets -= 1;
         seatTaken[_id][_seat] = msg.sender;
         seatsTaken[_id].push(_seat);
         hasBought[_id][msg.sender] = true; 
         
-
         // generate tokenID
         totalSupply++; 
         _safeMint(msg.sender , totalSupply ); 
     }
+    
+    function getSeatsToken(uint256 _id) public view returns (uint256[] memory) {
+        return seatsTaken[_id];
+    }
+
+    function withDraw()public onlyOwner {
+        (bool success, ) = owner.call{value: address(this).balance}("");
+        require(success);
+    }
+
+    
 }
